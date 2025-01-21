@@ -14,8 +14,7 @@ ReSamplerAudioProcessorEditor::ReSamplerAudioProcessorEditor(ReSamplerAudioProce
 	: AudioProcessorEditor(&p), audioProcessor(p)
 {
 	startTimerHz(24);
-	formatManager.registerBasicFormats();
-	
+
 	setConstrainer(&constrainer);
 	constrainer.setMinimumSize(600, 75);
 	setResizable(true, true);
@@ -25,6 +24,8 @@ ReSamplerAudioProcessorEditor::ReSamplerAudioProcessorEditor(ReSamplerAudioProce
 
 	menuButton.onClick = [this] { menuButtonClicked(); };
 	addAndMakeVisible(menuButton);
+
+	formatManager.registerBasicFormats();
 }
 
 ReSamplerAudioProcessorEditor::~ReSamplerAudioProcessorEditor()
@@ -33,6 +34,7 @@ ReSamplerAudioProcessorEditor::~ReSamplerAudioProcessorEditor()
 }
 
 //==============================================================================
+
 void ReSamplerAudioProcessorEditor::paint(juce::Graphics& g)
 {
 	// (Our component is opaque, so we must completely fill the background with a solid colour)
@@ -118,6 +120,14 @@ void ReSamplerAudioProcessorEditor::loadState()
 
 }
 
+void ReSamplerAudioProcessorEditor::timerCallback()
+{
+	if (waveform.getTotalLength() == 0.0)
+		waveform.setSource(audioProcessor.bufferManager->getBufferPointer(), audioProcessor.bufferManager->getBufferSampleRate(), audioProcessor.bufferManager->getBufferLength());
+	prepareWaveform();
+	repaint();
+}
+
 void ReSamplerAudioProcessorEditor::menuButtonClicked()
 {
 	juce::PopupMenu menu;
@@ -153,22 +163,22 @@ void ReSamplerAudioProcessorEditor::setTheme(Theme theme)
 
 void ReSamplerAudioProcessorEditor::setRecordingPath()
 {
-	fileChooser = std::make_unique<juce::FileChooser>("Select a folder to save recordings", 
+	fileChooser = std::make_unique<juce::FileChooser>("Select a folder to save recordings",
 		juce::File(properties.recordingPath),
 		"*",
 		true,
 		true,
 		nullptr);
-    fileChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories,
-        [this](const juce::FileChooser& fc)
-        {
-            if (fc.getResult().isDirectory())
-            {
-                properties.recordingPath = fc.getResult().getFullPathName();
+	fileChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories,
+		[this](const juce::FileChooser& fc)
+		{
+			if (fc.getResult().isDirectory())
+			{
+				properties.recordingPath = fc.getResult().getFullPathName();
 				saveState();
-                repaint();
-            }
-        });
+				repaint();
+			}
+		});
 }
 
 void ReSamplerAudioProcessorEditor::setBufferLength(int length)

@@ -44,7 +44,7 @@ public:
 	void saveState();
 	void loadState();
 
-	void timerCallback() override { prepareWaveform(); repaint(); };
+	void timerCallback() override;
 
 private:
 	// This reference is provided as a quick way for your editor to
