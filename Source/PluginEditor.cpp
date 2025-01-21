@@ -15,7 +15,7 @@ ReSamplerAudioProcessorEditor::ReSamplerAudioProcessorEditor(ReSamplerAudioProce
 {
 	startTimerHz(24);
 	formatManager.registerBasicFormats();
-
+	
 	setConstrainer(&constrainer);
 	constrainer.setMinimumSize(600, 75);
 	setResizable(true, true);
@@ -40,7 +40,7 @@ void ReSamplerAudioProcessorEditor::paint(juce::Graphics& g)
 
 	g.setColour(juce::Colours::white);
 
-
+	waveform.drawChannels(g, getLocalBounds(), 0, audioProcessor.bufferManager->getBufferLength(), 1.0f);
 	//g.setFont(15.0f);
 	//g.drawFittedText("BufferLength: " + juce::String(audioProcessor.bufferManager->getBufferLength()), getLocalBounds(), juce::Justification::centred, 1);
 	//g.drawFittedText("RecordingPath: " + properties.recordingPath, getLocalBounds(), juce::Justification::centred, 1);
@@ -49,6 +49,21 @@ void ReSamplerAudioProcessorEditor::paint(juce::Graphics& g)
 void ReSamplerAudioProcessorEditor::resized()
 {
 	menuButton.setBounds(getWidth() - 50, 10, 40, 20);
+}
+
+void ReSamplerAudioProcessorEditor::prepareWaveform()
+{
+	if (waveform.getTotalLength() > 0.0)
+	{
+		if (audioProcessor.bufferManager->bufferState.writePosition - offset < 0) // overlap
+		{
+			waveform.addBlock(audioProcessor.bufferManager->getBufferPointer()->getNumSamples(), *(audioProcessor.bufferManager->getBufferPointer()), offset, audioProcessor.bufferManager->getBufferPointer()->getNumSamples() - offset);
+			waveform.addBlock(audioProcessor.bufferManager->getBufferPointer()->getNumSamples(), *(audioProcessor.bufferManager->getBufferPointer()), 0, audioProcessor.bufferManager->bufferState.writePosition);
+		}
+		else
+			waveform.addBlock(audioProcessor.bufferManager->getBufferPointer()->getNumSamples(), *(audioProcessor.bufferManager->getBufferPointer()), offset, audioProcessor.bufferManager->bufferState.writePosition - offset);
+		offset = audioProcessor.bufferManager->bufferState.writePosition;
+	}
 }
 
 void ReSamplerAudioProcessorEditor::manageProperties()

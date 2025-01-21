@@ -39,11 +39,12 @@ public:
 	void paint(juce::Graphics&) override;
 	void resized() override;
 
+	void prepareWaveform();
 	void manageProperties();
 	void saveState();
 	void loadState();
 
-	void timerCallback() override { repaint(); };
+	void timerCallback() override { prepareWaveform(); repaint(); };
 
 private:
 	// This reference is provided as a quick way for your editor to
@@ -57,6 +58,7 @@ private:
 	juce::ComponentBoundsConstrainer constrainer;
 	std::unique_ptr<juce::PropertiesFile> propertiesFile;
 	Properties properties;
+	int offset = 0;
 
 	juce::AudioThumbnailCache thumbnailCache{ 6 };
 	juce::AudioFormatManager formatManager;

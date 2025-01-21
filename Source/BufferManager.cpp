@@ -53,6 +53,7 @@ void BufferManager::setBufferLength(int length)
 	{
 		recordBuffer->setSize(bufferParameters.numChannels, bufferLength * bufferParameters.sampleRate);
 		recordBuffer->clear();
+		bufferState.writePosition = 0;
 	}
 }
 

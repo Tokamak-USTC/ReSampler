@@ -158,6 +158,7 @@ void ReSamplerAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
 
         // ..do something to the data...
     }
+	bufferManager->writeToBuffer(buffer);
 }
 
 //==============================================================================
