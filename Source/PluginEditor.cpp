@@ -13,6 +13,9 @@
 ReSamplerAudioProcessorEditor::ReSamplerAudioProcessorEditor(ReSamplerAudioProcessor& p)
 	: AudioProcessorEditor(&p), audioProcessor(p)
 {
+	startTimerHz(24);
+	formatManager.registerBasicFormats();
+
 	setConstrainer(&constrainer);
 	constrainer.setMinimumSize(600, 75);
 	setResizable(true, true);
@@ -36,9 +39,11 @@ void ReSamplerAudioProcessorEditor::paint(juce::Graphics& g)
 	g.fillAll(juce::Colours::black);
 
 	g.setColour(juce::Colours::white);
-	g.setFont(15.0f);
+
+
+	//g.setFont(15.0f);
 	//g.drawFittedText("BufferLength: " + juce::String(audioProcessor.bufferManager->getBufferLength()), getLocalBounds(), juce::Justification::centred, 1);
-	g.drawFittedText("RecordingPath: " + properties.recordingPath, getLocalBounds(), juce::Justification::centred, 1);
+	//g.drawFittedText("RecordingPath: " + properties.recordingPath, getLocalBounds(), juce::Justification::centred, 1);
 }
 
 void ReSamplerAudioProcessorEditor::resized()
@@ -127,6 +132,7 @@ void ReSamplerAudioProcessorEditor::setTheme(Theme theme)
 	if (properties.theme == theme)
 		return;
 	properties.theme = theme;
+	saveState();
 	repaint();
 }
 
@@ -144,6 +150,7 @@ void ReSamplerAudioProcessorEditor::setRecordingPath()
             if (fc.getResult().isDirectory())
             {
                 properties.recordingPath = fc.getResult().getFullPathName();
+				saveState();
                 repaint();
             }
         });
@@ -154,6 +161,8 @@ void ReSamplerAudioProcessorEditor::setBufferLength(int length)
 	if (audioProcessor.bufferManager->getBufferLength() == length)
 		return;
 	audioProcessor.bufferManager->setBufferLength(length);
+	waveform.setSource(audioProcessor.bufferManager->getBufferPointer(), audioProcessor.bufferManager->getBufferSampleRate(), length);
+	saveState();
 	repaint();
 }
 

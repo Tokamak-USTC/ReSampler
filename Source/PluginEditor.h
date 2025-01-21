@@ -16,18 +16,20 @@
 */
 enum Theme
 {
-    Rainbow,
-    Light,
-    Dark
+	Rainbow,
+	Light,
+	Dark
 };
 
 struct Properties
 {
 	juce::String recordingPath;
-	Theme theme;
+	Theme theme = Rainbow;
 };
 
-class ReSamplerAudioProcessorEditor : public juce::AudioProcessorEditor, public juce::DragAndDropContainer
+class ReSamplerAudioProcessorEditor : public juce::AudioProcessorEditor,
+	public juce::DragAndDropContainer,
+	public juce::Timer
 {
 public:
 	ReSamplerAudioProcessorEditor(ReSamplerAudioProcessor&);
@@ -41,6 +43,8 @@ public:
 	void saveState();
 	void loadState();
 
+	void timerCallback() override { repaint(); };
+
 private:
 	// This reference is provided as a quick way for your editor to
 	// access the processor object that created it.
@@ -53,6 +57,10 @@ private:
 	juce::ComponentBoundsConstrainer constrainer;
 	std::unique_ptr<juce::PropertiesFile> propertiesFile;
 	Properties properties;
+
+	juce::AudioThumbnailCache thumbnailCache{ 6 };
+	juce::AudioFormatManager formatManager;
+	juce::AudioThumbnail waveform{ 44100, formatManager, thumbnailCache };
 
 	juce::TextButton menuButton{ "Menu" };
 	std::unique_ptr<juce::FileChooser> fileChooser;

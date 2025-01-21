@@ -34,9 +34,14 @@ public:
 	void initializeBuffer(int numChannels, int sampleRate);
 	void setBufferLength(int length);
 	int getBufferLength() const { return bufferLength; }
+	int getBufferSampleRate() const { return bufferParameters.sampleRate; }
+	juce::AudioBuffer<float>* getBufferPointer() const { return recordBuffer.get(); }
 
 	void writeToBuffer(const juce::AudioBuffer<float>& buffer);
 	void readFromBuffer(juce::AudioBuffer<float>& buffer);
+
+	
+	
 
 	BufferState bufferState;
 

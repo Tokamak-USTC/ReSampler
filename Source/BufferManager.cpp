@@ -20,11 +20,11 @@ BufferManager::~BufferManager()
 
 void BufferManager::initializeBuffer(int numChannels, int sampleRate)
 {
-	//设置buffer参数
+	//脡猫脰脙buffer虏脦脢媒
 	bufferParameters.numChannels = numChannels;
 	bufferParameters.sampleRate = sampleRate;
 
-	//读取配置文件
+	//露脕脠隆脜盲脰脙脦脛录镁
 	juce::PropertiesFile::Options options;
 	options.applicationName = "TKRS";
 	options.filenameSuffix = ".settings";
