@@ -16,7 +16,7 @@ ReSamplerAudioProcessorEditor::ReSamplerAudioProcessorEditor(ReSamplerAudioProce
 
 	setConstrainer(&constrainer);
 	constrainer.setMinimumSize(600, 75);
-	
+
 	setResizable(true, true);
 
 	manageProperties();
@@ -49,7 +49,7 @@ void ReSamplerAudioProcessorEditor::paint(juce::Graphics& g)
 		menuButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
 		paintRainbow(g);
 		break;
-		
+
 	case Theme::Light:
 		menuButton.setColour(juce::TextButton::buttonColourId, juce::Colours::black.withBrightness(0.7f));
 		menuButton.setColour(juce::TextButton::textColourOffId, juce::Colours::black.withAlpha(0.7f));
@@ -89,9 +89,9 @@ void ReSamplerAudioProcessorEditor::paintRainbow(juce::Graphics& g)
 	juce::ColourGradient recBlock(juce::Colours::red.withAlpha(0.0f), recLineX - 49, 0,
 		juce::Colours::red.withAlpha(0.5f), recLineX, 0, false);
 	g.setGradientFill(recBlock);
-	g.fillRect(recLineX - 49, 0, 49, getHeight());
+	g.fillRect(recLineX - 50, 0, 49, getHeight());
 	g.setColour(juce::Colours::red);
-	g.fillRect(recLineX, 0, 1, getHeight());
+	g.fillRect(recLineX - 1, 0, 1, getHeight());
 
 	g.setFont(20.0f);
 	g.setColour(juce::Colours::white);
@@ -111,9 +111,9 @@ void ReSamplerAudioProcessorEditor::paintLight(juce::Graphics& g)
 	juce::ColourGradient recBlock(juce::Colours::black.withAlpha(0.0f), recLineX - 49, 0,
 		juce::Colours::black.withAlpha(0.5f), recLineX, 0, false);
 	g.setGradientFill(recBlock);
-	g.fillRect(recLineX - 49, 0, 49, getHeight());
-	g.setColour(juce::Colours::black);
-	g.fillRect(recLineX, 0, 1, getHeight());
+	g.fillRect(recLineX - 50, 0, 49, getHeight());
+	g.setColour(juce::Colours::black.withAlpha(0.7f));
+	g.fillRect(recLineX - 1, 0, 1, getHeight());
 
 	g.setFont(20.0f);
 	g.drawText("ReSampler By Tokamak", getBounds(), juce::Justification::centred, true);
@@ -122,19 +122,26 @@ void ReSamplerAudioProcessorEditor::paintLight(juce::Graphics& g)
 void ReSamplerAudioProcessorEditor::paintMatrix(juce::Graphics& g)
 {
 	int recLineX = getWidth() * (static_cast<float>(audioProcessor.bufferManager->bufferState.writePosition) / audioProcessor.bufferManager->getBufferPointer()->getNumSamples());
-	
+
 	g.fillAll(juce::Colours::black.withBrightness(0.1f));
 
-	g.setColour(juce::Colours::darkgreen.withBrightness(0.5f));
+	float borderAlpha = 1.0f - static_cast<float>(recLineX) / getWidth();
+
+	juce::ColourGradient waveBlock(juce::Colours::darkgreen.withBrightness(0.5f).withAlpha(borderAlpha), 0, 0,
+		juce::Colours::darkgreen.withBrightness(0.5f).withAlpha(borderAlpha), getWidth(), 0, false);
+	waveBlock.addColour(static_cast<float>(recLineX) / getWidth(), juce::Colours::darkgreen.withBrightness(0.5f).withAlpha(1.0f));
+	waveBlock.addColour(static_cast<float>(recLineX) / getWidth(), juce::Colours::darkgreen.withBrightness(0.5f).withAlpha(0.0f));
+	g.setGradientFill(waveBlock);
 	waveform.drawChannels(g, getLocalBounds(), 0, audioProcessor.bufferManager->getBufferLength(), 1.0f);
-	
+
+
 	juce::ColourGradient recBlock(juce::Colours::darkgreen.withAlpha(0.0f), recLineX - 49, 0,
 		juce::Colours::darkgreen.withAlpha(0.5f), recLineX, 0, false);
 	g.setGradientFill(recBlock);
-	g.fillRect(recLineX - 49, 0, 49, getHeight());
+	g.fillRect(recLineX - 50, 0, 49, getHeight());
 	g.setColour(juce::Colours::green.withBrightness(0.7f));
-	g.fillRect(recLineX, 0, 1, getHeight());
-	
+	g.fillRect(recLineX - 1, 0, 1, getHeight());
+
 	g.setFont(20.0f);
 	g.drawText("ReSampler By Tokamak", getBounds(), juce::Justification::centred, true);
 }
