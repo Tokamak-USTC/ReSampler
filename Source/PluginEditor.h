@@ -18,7 +18,7 @@ enum Theme
 {
 	Rainbow,
 	Light,
-	Dark
+	Matrix
 };
 
 struct Properties
@@ -29,7 +29,8 @@ struct Properties
 
 class ReSamplerAudioProcessorEditor : public juce::AudioProcessorEditor,
 	public juce::DragAndDropContainer,
-	public juce::Timer
+	public juce::Timer,
+	public juce::OpenGLRenderer
 {
 public:
 	ReSamplerAudioProcessorEditor(ReSamplerAudioProcessor&);
@@ -37,6 +38,9 @@ public:
 
 	//==============================================================================
 	void paint(juce::Graphics&) override;
+	void paintRainbow(juce::Graphics& g);
+	void paintLight(juce::Graphics& g);
+	void paintMatrix(juce::Graphics& g);
 	void resized() override;
 
 	void prepareWaveform();
@@ -53,6 +57,12 @@ private:
 	void setTheme(Theme theme);
 	void setBufferLength(int length);
 	void setRecordingPath();
+
+	void newOpenGLContextCreated() override { };
+	void renderOpenGL() override { };
+	void openGLContextClosing() override { };
+
+	juce::OpenGLContext openGLContext;
 
 	ReSamplerAudioProcessor& audioProcessor;
 	juce::ComponentBoundsConstrainer constrainer;
