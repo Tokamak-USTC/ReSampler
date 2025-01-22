@@ -18,6 +18,7 @@ enum Theme
 {
 	Rainbow,
 	Light,
+	Dark,
 	Matrix
 };
 
@@ -25,6 +26,13 @@ struct Properties
 {
 	juce::String recordingPath;
 	Theme theme = Rainbow;
+};
+
+struct EditorState
+{
+	float startPos = 0.0f;
+	float width = 0.0f;
+	bool enable = false;
 };
 
 class ReSamplerAudioProcessorEditor : public juce::AudioProcessorEditor,
@@ -38,22 +46,27 @@ public:
 
 	//==============================================================================
 	void paint(juce::Graphics&) override;
+	void resized() override;
+
+private:
 	void paintRainbow(juce::Graphics& g);
 	void paintLight(juce::Graphics& g);
+	void paintDark(juce::Graphics& g);
 	void paintMatrix(juce::Graphics& g);
-	void resized() override;
 
 	void prepareWaveform();
 	void manageProperties();
 	void saveState();
 	void loadState();
+	bool isInSelectedArea(const int pos);
 
 	void timerCallback() override;
-
-private:
-	// This reference is provided as a quick way for your editor to
-	// access the processor object that created it.
+	void mouseDown(const juce::MouseEvent& event) override;
+	void mouseUp(const juce::MouseEvent& event) override;
+	void mouseDoubleClick(const juce::MouseEvent& event) override;
+	void mouseDrag(const juce::MouseEvent& event) override;
 	void menuButtonClicked();
+
 	void setTheme(Theme theme);
 	void setBufferLength(int length);
 	void setRecordingPath();
@@ -68,6 +81,7 @@ private:
 	juce::ComponentBoundsConstrainer constrainer;
 	std::unique_ptr<juce::PropertiesFile> propertiesFile;
 	Properties properties;
+	EditorState editorState;
 	int offset = 0;
 
 	juce::AudioThumbnailCache thumbnailCache{ 6 };

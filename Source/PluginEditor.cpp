@@ -9,6 +9,7 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
+
 ReSamplerAudioProcessorEditor::ReSamplerAudioProcessorEditor(ReSamplerAudioProcessor& p)
 	: AudioProcessorEditor(&p), audioProcessor(p)
 {
@@ -56,6 +57,12 @@ void ReSamplerAudioProcessorEditor::paint(juce::Graphics& g)
 		paintLight(g);
 		break;
 
+	case Theme::Dark:
+		menuButton.setColour(juce::TextButton::buttonColourId, juce::Colours::black.withBrightness(0.2f));
+		menuButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+		paintDark(g);
+		break;
+
 	case Theme::Matrix:
 		menuButton.setColour(juce::TextButton::buttonColourId, juce::Colours::black.withBrightness(0.1f));
 		menuButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
@@ -67,6 +74,11 @@ void ReSamplerAudioProcessorEditor::paint(juce::Graphics& g)
 	}
 }
 
+void ReSamplerAudioProcessorEditor::resized()
+{
+	menuButton.setBounds(getWidth() - 50, 10, 40, 20);
+}
+
 void ReSamplerAudioProcessorEditor::paintRainbow(juce::Graphics& g)
 {
 	int recLineX = getWidth() * (static_cast<float>(audioProcessor.bufferManager->bufferState.writePosition) / audioProcessor.bufferManager->getBufferPointer()->getNumSamples());
@@ -74,15 +86,15 @@ void ReSamplerAudioProcessorEditor::paintRainbow(juce::Graphics& g)
 	g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
 	//g.fillAll(juce::Colours::black.withBrightness(0.25f).interpolatedWith(juce::Colours::darkgreen, 0.05f));
 
-	juce::ColourGradient waveBlock(juce::Colours::purple.interpolatedWith(juce::Colours::grey, 0.5f), 0, 0,
-		juce::Colours::purple.interpolatedWith(juce::Colours::grey, 0.3f), getWidth(), 0, false);
-	waveBlock.addColour(0.125, juce::Colours::red.interpolatedWith(juce::Colours::grey, 0.3f));
-	waveBlock.addColour(0.25, juce::Colours::orange.interpolatedWith(juce::Colours::grey, 0.3f));
-	waveBlock.addColour(0.375, juce::Colours::yellow.interpolatedWith(juce::Colours::grey, 0.3f));
-	waveBlock.addColour(0.5, juce::Colours::green.interpolatedWith(juce::Colours::grey, 0.3f));
-	waveBlock.addColour(0.625, juce::Colours::blue.interpolatedWith(juce::Colours::grey, 0.3f));
-	waveBlock.addColour(0.75, juce::Colours::indigo.interpolatedWith(juce::Colours::grey, 0.3f));
-	waveBlock.addColour(0.875, juce::Colours::violet.interpolatedWith(juce::Colours::grey, 0.3f));
+	juce::ColourGradient waveBlock(juce::Colours::purple.withAlpha(0.7f).interpolatedWith(juce::Colours::grey, 0.5f), 0, 0,
+		juce::Colours::purple.withAlpha(0.7f).interpolatedWith(juce::Colours::grey, 0.5f), getWidth(), 0, false);
+	waveBlock.addColour(0.125, juce::Colours::red.withAlpha(0.7f).interpolatedWith(juce::Colours::grey, 0.5f));
+	waveBlock.addColour(0.25, juce::Colours::orange.withAlpha(0.7f).interpolatedWith(juce::Colours::grey, 0.5f));
+	waveBlock.addColour(0.375, juce::Colours::yellow.withAlpha(0.7f).interpolatedWith(juce::Colours::grey, 0.5f));
+	waveBlock.addColour(0.5, juce::Colours::green.withAlpha(0.7f).interpolatedWith(juce::Colours::grey, 0.5f));
+	waveBlock.addColour(0.625, juce::Colours::blue.withAlpha(0.7f).interpolatedWith(juce::Colours::grey, 0.5f));
+	waveBlock.addColour(0.75, juce::Colours::indigo.withAlpha(0.7f).interpolatedWith(juce::Colours::grey, 0.5f));
+	waveBlock.addColour(0.875, juce::Colours::violet.withAlpha(0.7f).interpolatedWith(juce::Colours::grey, 0.5f));
 	g.setGradientFill(waveBlock);
 	waveform.drawChannels(g, getLocalBounds(), 0, audioProcessor.bufferManager->getBufferLength(), 1.0f);
 
@@ -97,6 +109,14 @@ void ReSamplerAudioProcessorEditor::paintRainbow(juce::Graphics& g)
 	g.setColour(juce::Colours::white);
 	g.drawText("ReSampler By Tokamak", getBounds(), juce::Justification::centred, true);
 
+	if (!audioProcessor.bufferManager->bufferState.isRecording)
+		g.fillAll(juce::Colours::orange.withAlpha(0.15f));
+
+	if (editorState.enable)
+	{
+		g.setColour(juce::Colours::white.withAlpha(0.1f));
+		g.fillRect(static_cast<int>(editorState.startPos * getWidth()), 0, static_cast<int>(editorState.width * getWidth()), getHeight());
+	}
 }
 
 void ReSamplerAudioProcessorEditor::paintLight(juce::Graphics& g)
@@ -117,6 +137,44 @@ void ReSamplerAudioProcessorEditor::paintLight(juce::Graphics& g)
 
 	g.setFont(20.0f);
 	g.drawText("ReSampler By Tokamak", getBounds(), juce::Justification::centred, true);
+
+	if (!audioProcessor.bufferManager->bufferState.isRecording)
+		g.fillAll(juce::Colours::orange.withAlpha(0.1f));
+
+	if (editorState.enable)
+	{
+		g.setColour(juce::Colours::black.withAlpha(0.2f));
+		g.fillRect(static_cast<int>(editorState.startPos * getWidth()), 0, static_cast<int>(editorState.width * getWidth()), getHeight());
+	}
+}
+
+void ReSamplerAudioProcessorEditor::paintDark(juce::Graphics& g)
+{
+	int recLineX = getWidth() * (static_cast<float>(audioProcessor.bufferManager->bufferState.writePosition) / audioProcessor.bufferManager->getBufferPointer()->getNumSamples());
+
+	g.fillAll(juce::Colours::black.withBrightness(0.15f));
+
+	g.setColour(juce::Colours::black.withBrightness(0.7f));
+	waveform.drawChannels(g, getLocalBounds(), 0, audioProcessor.bufferManager->getBufferLength(), 1.0f);
+
+	juce::ColourGradient recBlock(juce::Colours::white.withBrightness(0.5f).withAlpha(0.0f), recLineX - 49, 0,
+		juce::Colours::white.withBrightness(0.7f).withAlpha(0.7f), recLineX, 0, false);
+	g.setGradientFill(recBlock);
+	g.fillRect(recLineX - 50, 0, 49, getHeight());
+	g.setColour(juce::Colours::white.withBrightness(0.9f));
+	g.fillRect(recLineX - 1, 0, 1, getHeight());
+
+	g.setFont(20.0f);
+	g.drawText("ReSampler By Tokamak", getBounds(), juce::Justification::centred, true);
+
+	if (!audioProcessor.bufferManager->bufferState.isRecording)
+		g.fillAll(juce::Colours::white.withAlpha(0.1f));
+
+	if (editorState.enable)
+	{
+		g.setColour(juce::Colours::white.withAlpha(0.1f));
+		g.fillRect(static_cast<int>(editorState.startPos * getWidth()), 0, static_cast<int>(editorState.width * getWidth()), getHeight());
+	}
 }
 
 void ReSamplerAudioProcessorEditor::paintMatrix(juce::Graphics& g)
@@ -126,29 +184,34 @@ void ReSamplerAudioProcessorEditor::paintMatrix(juce::Graphics& g)
 	g.fillAll(juce::Colours::black.withBrightness(0.1f));
 
 	float borderAlpha = 1.0f - static_cast<float>(recLineX) / getWidth();
+	float borderBrightness = 0.8 * borderAlpha;
 
-	juce::ColourGradient waveBlock(juce::Colours::darkgreen.withBrightness(0.5f).withAlpha(borderAlpha), 0, 0,
-		juce::Colours::darkgreen.withBrightness(0.5f).withAlpha(borderAlpha), getWidth(), 0, false);
-	waveBlock.addColour(static_cast<float>(recLineX) / getWidth(), juce::Colours::darkgreen.withBrightness(0.5f).withAlpha(1.0f));
-	waveBlock.addColour(static_cast<float>(recLineX) / getWidth(), juce::Colours::darkgreen.withBrightness(0.5f).withAlpha(0.0f));
+	juce::ColourGradient waveBlock(juce::Colours::darkgreen.withBrightness(borderBrightness).withAlpha(borderAlpha), 0, 0,
+		juce::Colours::darkgreen.withBrightness(borderBrightness).withAlpha(borderAlpha), getWidth(), 0, false);
+	waveBlock.addColour(static_cast<float>(recLineX) / getWidth(), juce::Colours::darkgreen.withBrightness(0.8f).withAlpha(1.0f));
+	waveBlock.addColour(static_cast<float>(recLineX) / getWidth(), juce::Colours::darkgreen.withBrightness(0.0f).withAlpha(0.0f));
 	g.setGradientFill(waveBlock);
 	waveform.drawChannels(g, getLocalBounds(), 0, audioProcessor.bufferManager->getBufferLength(), 1.0f);
 
-
 	juce::ColourGradient recBlock(juce::Colours::darkgreen.withAlpha(0.0f), recLineX - 49, 0,
-		juce::Colours::darkgreen.withAlpha(0.5f), recLineX, 0, false);
+		juce::Colours::darkgreen.withBrightness(0.8f).withAlpha(0.5f), recLineX, 0, false);
 	g.setGradientFill(recBlock);
 	g.fillRect(recLineX - 50, 0, 49, getHeight());
-	g.setColour(juce::Colours::green.withBrightness(0.7f));
+	g.setColour(juce::Colours::darkgreen.withBrightness(1.0f));
 	g.fillRect(recLineX - 1, 0, 1, getHeight());
 
+	g.setColour(juce::Colours::darkgreen.interpolatedWith(juce::Colours::white, 0.2f).withBrightness(1.0f));
 	g.setFont(20.0f);
 	g.drawText("ReSampler By Tokamak", getBounds(), juce::Justification::centred, true);
-}
 
-void ReSamplerAudioProcessorEditor::resized()
-{
-	menuButton.setBounds(getWidth() - 50, 10, 40, 20);
+	if (!audioProcessor.bufferManager->bufferState.isRecording)
+		g.fillAll(juce::Colours::darkgreen.interpolatedWith(juce::Colours::black, 0.2f).withAlpha(0.1f));
+
+	if (editorState.enable)
+	{
+		g.setColour(juce::Colours::darkgreen.withAlpha(0.3f));
+		g.fillRect(static_cast<int>(editorState.startPos * getWidth()), 0, static_cast<int>(editorState.width * getWidth()), getHeight());
+	}
 }
 
 void ReSamplerAudioProcessorEditor::prepareWaveform()
@@ -218,6 +281,15 @@ void ReSamplerAudioProcessorEditor::loadState()
 
 }
 
+bool ReSamplerAudioProcessorEditor::isInSelectedArea(const int pos)
+{
+	if (pos <= editorState.startPos * getWidth() + 1)
+		return false;
+	if (pos >= (editorState.startPos + editorState.width) * getWidth() - 1)
+		return false;
+	return true;
+}
+
 void ReSamplerAudioProcessorEditor::timerCallback()
 {
 	if (waveform.getTotalLength() == 0.0)
@@ -225,6 +297,64 @@ void ReSamplerAudioProcessorEditor::timerCallback()
 	prepareWaveform();
 	repaint();
 
+}
+
+void ReSamplerAudioProcessorEditor::mouseDown(const juce::MouseEvent& event)
+{
+	if (event.eventComponent == this)
+	{
+		if (event.mods.isLeftButtonDown() && !isInSelectedArea(event.getMouseDownX()) && editorState.enable)
+		{
+			editorState.enable = false;
+			repaint();
+		}
+	}
+}
+
+void ReSamplerAudioProcessorEditor::mouseUp(const juce::MouseEvent& event)
+{
+}
+
+void ReSamplerAudioProcessorEditor::mouseDoubleClick(const juce::MouseEvent& event)
+{
+	if (event.mods.isLeftButtonDown() && event.eventComponent == this)
+	{
+		audioProcessor.bufferManager->bufferState.isRecording = !audioProcessor.bufferManager->bufferState.isRecording;
+		repaint();
+	}
+}
+
+void ReSamplerAudioProcessorEditor::mouseDrag(const juce::MouseEvent& event)
+{
+	if (event.mods.isLeftButtonDown() && event.eventComponent == this)
+	{
+		if (editorState.enable && isInSelectedArea(event.getMouseDownX()))
+		{
+			DBG("render audio file");
+		}
+		else
+		{
+			editorState.enable = true;
+			if (event.getDistanceFromDragStartX() < 0)
+			{
+				editorState.startPos = static_cast<float>(event.getMouseDownX() + event.getDistanceFromDragStartX()) / getWidth();
+				editorState.width = static_cast<float>(-event.getDistanceFromDragStartX()) / getWidth();
+			}
+			else
+			{
+				editorState.startPos = static_cast<float>(event.getMouseDownX()) / getWidth();
+				editorState.width = static_cast<float>(event.getDistanceFromDragStartX()) / getWidth();
+			}
+			if (editorState.startPos < 0.0f)
+			{
+				editorState.width += editorState.startPos;
+				editorState.startPos = 0.0f;
+			}
+			if (editorState.startPos + editorState.width > 1.0f)
+				editorState.width = 1.0f - editorState.startPos;
+			repaint();
+		}
+	}
 }
 
 void ReSamplerAudioProcessorEditor::menuButtonClicked()
@@ -235,7 +365,9 @@ void ReSamplerAudioProcessorEditor::menuButtonClicked()
 
 	theme.addItem("Rainbow", true, properties.theme == Theme::Rainbow, [this] {setTheme(Theme::Rainbow); });
 	theme.addItem("Light", true, properties.theme == Theme::Light, [this] {setTheme(Theme::Light); });
+	theme.addItem("Dark", true, properties.theme == Theme::Dark, [this] {setTheme(Theme::Dark); });
 	theme.addItem("Matrix", true, properties.theme == Theme::Matrix, [this] {setTheme(Theme::Matrix); });
+
 
 	bufferLength.addItem("15s", true, audioProcessor.bufferManager->getBufferLength() == 15, [this] {setBufferLength(15); });
 	bufferLength.addItem("30s", true, audioProcessor.bufferManager->getBufferLength() == 30, [this] {setBufferLength(30); });
@@ -244,20 +376,11 @@ void ReSamplerAudioProcessorEditor::menuButtonClicked()
 	bufferLength.addItem("5min", true, audioProcessor.bufferManager->getBufferLength() == 300, [this] {setBufferLength(300); });
 	//bufferLength.addItem("10min", true, audioProcessor.bufferManager->getBufferLength() == 600, [this] {setBufferLength(600); });
 
-	menu.addSubMenu("Theme", theme);
 	menu.addSubMenu("BufferLength", bufferLength);
+	menu.addSubMenu("Theme", theme);
 	menu.addItem("SetRecordingPath", [this] {setRecordingPath(); });
 
 	menu.showMenuAsync(juce::PopupMenu::Options());
-}
-
-void ReSamplerAudioProcessorEditor::setTheme(Theme theme)
-{
-	if (properties.theme == theme)
-		return;
-	properties.theme = theme;
-	saveState();
-	repaint();
 }
 
 void ReSamplerAudioProcessorEditor::setRecordingPath()
@@ -278,6 +401,15 @@ void ReSamplerAudioProcessorEditor::setRecordingPath()
 				repaint();
 			}
 		});
+}
+
+void ReSamplerAudioProcessorEditor::setTheme(Theme theme)
+{
+	if (properties.theme == theme)
+		return;
+	properties.theme = theme;
+	saveState();
+	repaint();
 }
 
 void ReSamplerAudioProcessorEditor::setBufferLength(int length)
