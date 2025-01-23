@@ -88,5 +88,35 @@ void BufferManager::writeToBuffer(const juce::AudioBuffer<float>& buffer)
 
 void BufferManager::readFromBuffer(juce::AudioBuffer<float>& buffer)
 {
+	juce::ScopedLock lock(bufferLock);
+	if (recordBuffer == nullptr || bufferState.isPlaying == false)
+		return;
 
+	juce::AudioBuffer<float> tmpBuffer(buffer.getNumChannels(), buffer.getNumSamples());
+	int numChannels = buffer.getNumChannels();
+	int numSamples = buffer.getNumSamples();
+
+	if (bufferState.readPosition + numSamples > recordBuffer->getNumSamples())
+	{
+		int overlap = bufferState.readPosition + numSamples - recordBuffer->getNumSamples();
+		for (int channel = 0; channel < numChannels; channel++)
+		{
+			tmpBuffer.copyFrom(channel, 0, *recordBuffer, channel, bufferState.readPosition, recordBuffer->getNumSamples() - bufferState.readPosition);
+			tmpBuffer.copyFrom(channel, recordBuffer->getNumSamples() - bufferState.readPosition, *recordBuffer, channel, 0, overlap);
+		}
+		bufferState.readPosition = overlap;
+	}
+	else
+	{
+		for (int channel = 0; channel < numChannels; channel++)
+		{
+			tmpBuffer.copyFrom(channel, 0, *recordBuffer, channel, bufferState.readPosition, numSamples);
+		}
+		bufferState.readPosition += numSamples;
+	}
+
+	for (int channel = 0; channel < numChannels; channel++)
+	{
+		buffer.addFrom(channel, 0, tmpBuffer, channel, 0, numSamples, 1.0f);
+	}
 }

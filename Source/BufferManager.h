@@ -40,9 +40,6 @@ public:
 	void writeToBuffer(const juce::AudioBuffer<float>& buffer);
 	void readFromBuffer(juce::AudioBuffer<float>& buffer);
 
-	
-	
-
 	BufferState bufferState;
 
 private:

@@ -36,6 +36,7 @@ struct EditorState
 	int widthAbs = 0;
 	bool enableSelectArea = false;
 	bool dragFlag = false;
+	bool playSelected = 0;
 };
 
 class ReSamplerAudioProcessorEditor : public juce::AudioProcessorEditor,
