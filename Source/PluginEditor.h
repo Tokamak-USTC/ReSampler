@@ -32,7 +32,10 @@ struct EditorState
 {
 	float startPos = 0.0f;
 	float width = 0.0f;
-	bool enable = false;
+	int startPosAbs = 0;
+	int widthAbs = 0;
+	bool enableSelectArea = false;
+	bool dragFlag = false;
 };
 
 class ReSamplerAudioProcessorEditor : public juce::AudioProcessorEditor,
@@ -54,21 +57,24 @@ private:
 	void paintDark(juce::Graphics& g);
 	void paintMatrix(juce::Graphics& g);
 
-	void prepareWaveform();
 	void manageProperties();
 	void saveState();
 	void loadState();
+	void prepareWaveform();
 	bool isInSelectedArea(const int pos);
+	juce::String exportSelectedArea();
+	void renderBuffer(const juce::AudioBuffer<float>& buffer, int startSample, int numSamples, double sampleRate, const juce::File& file);
 
 	void timerCallback() override;
 	void mouseDown(const juce::MouseEvent& event) override;
 	void mouseUp(const juce::MouseEvent& event) override;
 	void mouseDoubleClick(const juce::MouseEvent& event) override;
 	void mouseDrag(const juce::MouseEvent& event) override;
+	void mouseMove(const juce::MouseEvent& event) override;
 	void menuButtonClicked();
 
-	void setTheme(Theme theme);
 	void setBufferLength(int length);
+	void setTheme(Theme theme);
 	void setRecordingPath();
 
 	void newOpenGLContextCreated() override { };

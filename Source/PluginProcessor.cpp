@@ -22,6 +22,9 @@ ReSamplerAudioProcessor::ReSamplerAudioProcessor()
                        )
 #endif
 {
+	juce::File ReSamplerFolder = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory).getChildFile("ReSampler");
+    if (!ReSamplerFolder.exists())
+		ReSamplerFolder.createDirectory();
 	bufferManager = std::make_unique<BufferManager>();
 }
 
