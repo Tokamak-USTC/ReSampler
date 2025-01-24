@@ -34,9 +34,12 @@ struct EditorState
 	float width = 0.0f;
 	int startPosAbs = 0;
 	int widthAbs = 0;
+	int mouseX = 0;
 	bool enableSelectArea = false;
 	bool dragFlag = false;
-	bool playSelected = 0;
+	bool playSelected = false;
+	bool recordSelected = false;
+	bool mouseIn = false;
 };
 
 class ReSamplerAudioProcessorEditor : public juce::AudioProcessorEditor,
@@ -71,6 +74,8 @@ private:
 	void mouseUp(const juce::MouseEvent& event) override;
 	void mouseDoubleClick(const juce::MouseEvent& event) override;
 	void mouseDrag(const juce::MouseEvent& event) override;
+	void mouseEnter(const juce::MouseEvent& event) override { editorState.mouseIn = true; };
+	void mouseExit(const juce::MouseEvent& event) override { editorState.mouseIn = false; editorState.mouseX = 0; };
 	void mouseMove(const juce::MouseEvent& event) override;
 	void menuButtonClicked();
 

@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="km1pau" name="ReSampler" projectType="audioplug" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" pluginManufacturer="Tokamak">
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" pluginManufacturer="Tokamak"
+              pluginFormats="buildAU,buildStandalone,buildVST3">
   <MAINGROUP id="VhN1gb" name="ReSampler">
     <GROUP id="{E1AA2B98-D253-DEE7-082D-2D5FAF81FA8F}" name="Source">
       <FILE id="gWzWjX" name="BufferManager.cpp" compile="1" resource="0"
