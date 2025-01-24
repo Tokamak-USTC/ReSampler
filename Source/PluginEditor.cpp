@@ -25,6 +25,8 @@ ReSamplerAudioProcessorEditor::ReSamplerAudioProcessorEditor(ReSamplerAudioProce
 	manageProperties();
 	loadState();
 
+	setWantsKeyboardFocus(true);
+
 	menuButton.onClick = [this] { menuButtonClicked(); };
 	addAndMakeVisible(menuButton);
 
@@ -49,6 +51,14 @@ void ReSamplerAudioProcessorEditor::paint(juce::Graphics& g)
 {
 	int recLineX = getWidth() * (static_cast<float>(audioProcessor.bufferManager->bufferState.writePosition) / audioProcessor.bufferManager->getBufferPointer()->getNumSamples());
 	int playLineX = getWidth() * (static_cast<float>(audioProcessor.bufferManager->bufferState.readPosition) / audioProcessor.bufferManager->getBufferPointer()->getNumSamples());
+	recLineX = (recLineX + editorState.waveformOffset) % getWidth();
+	playLineX = (playLineX + editorState.waveformOffset) % getWidth();
+
+	juce::Rectangle<int> firstPart(editorState.waveformOffset, 0, getWidth() - editorState.waveformOffset, getHeight());
+	juce::Rectangle<int> secondPart(0, 0, editorState.waveformOffset, getHeight());
+	double crossoverTime = static_cast<double>(getWidth() - editorState.waveformOffset) * audioProcessor.bufferManager->getBufferLength() / getWidth();
+
+
 	if (audioProcessor.bufferManager->bufferState.isPlaying && editorState.playSelected)
 	{
 		if (playLineX > editorState.startPosAbs + editorState.widthAbs + 1 || playLineX < editorState.startPosAbs - 1)
@@ -85,7 +95,8 @@ void ReSamplerAudioProcessorEditor::paint(juce::Graphics& g)
 	g.fillAll(colourScheme.backGround);
 
 	g.setGradientFill(colourScheme.waveBlock);
-	waveform.drawChannels(g, getLocalBounds(), 0, audioProcessor.bufferManager->getBufferLength(), 1.0f);
+	waveform.drawChannels(g, firstPart, 0, crossoverTime, 1.0f);
+	waveform.drawChannels(g, secondPart, crossoverTime, audioProcessor.bufferManager->getBufferLength(), 1.0f);
 
 	g.setGradientFill(colourScheme.recBlock);
 	g.fillRect(recLineX - 50, 0, 49, getHeight());
@@ -97,7 +108,7 @@ void ReSamplerAudioProcessorEditor::paint(juce::Graphics& g)
 		g.setColour(colourScheme.playLine);
 		g.fillRect(playLineX - 1, 0, 1, getHeight());
 	}
-	else if(editorState.mouseIn)
+	else if (editorState.mouseIn)
 	{
 		g.setColour(colourScheme.playLine);
 		g.fillRect(editorState.mouseX - 1, 0, 1, getHeight());
@@ -114,7 +125,7 @@ void ReSamplerAudioProcessorEditor::paint(juce::Graphics& g)
 		g.fillRect(editorState.startPosAbs, 0, editorState.widthAbs, getHeight());
 	}
 
-	if (properties.theme == Theme::Rainbow )
+	if (properties.theme == Theme::Rainbow)
 	{
 
 		if (audioProcessor.bufferManager->bufferState.isRecording)
@@ -154,7 +165,7 @@ void ReSamplerAudioProcessorEditor::paintRainbow(juce::Graphics& g, int recLineX
 	waveBlock.addColour(0.75, juce::Colours::indigo.withAlpha(0.7f).interpolatedWith(juce::Colours::white, 0.15f));
 	waveBlock.addColour(0.875, juce::Colours::violet.withAlpha(0.7f).interpolatedWith(juce::Colours::black, 0.15f));
 	colourScheme.waveBlock = waveBlock;
-	
+
 	juce::ColourGradient recBlock(juce::Colours::red.withAlpha(0.0f), recLineX - 49, 0,
 		juce::Colours::red.withAlpha(0.5f), recLineX, 0, false);
 	colourScheme.recBlock = recBlock;
@@ -402,13 +413,16 @@ void ReSamplerAudioProcessorEditor::mouseDown(const juce::MouseEvent& event)
 			if (editorState.enableSelectArea && isInSelectedArea(event.getMouseDownX()))
 			{
 				audioProcessor.bufferManager->bufferState.isPlaying = true;
-				audioProcessor.bufferManager->bufferState.readPosition = static_cast<float>(editorState.startPosAbs) / getWidth() * audioProcessor.bufferManager->getBufferPointer()->getNumSamples();
 				editorState.playSelected = true;
+				int realReadX = (editorState.startPosAbs + getWidth() - editorState.waveformOffset) % getWidth();
+				audioProcessor.bufferManager->bufferState.readPosition = static_cast<float>(realReadX) / getWidth() * audioProcessor.bufferManager->getBufferPointer()->getNumSamples();
+
 			}
 			else
 			{
 				audioProcessor.bufferManager->bufferState.isPlaying = true;
-				audioProcessor.bufferManager->bufferState.readPosition = static_cast<float>(event.getMouseDownX()) / getWidth() * audioProcessor.bufferManager->getBufferPointer()->getNumSamples();
+				int realReadX = (event.getMouseDownX() + getWidth() - editorState.waveformOffset) % getWidth();
+				audioProcessor.bufferManager->bufferState.readPosition = static_cast<float>(realReadX) / getWidth() * audioProcessor.bufferManager->getBufferPointer()->getNumSamples();
 			}
 		}
 	}
@@ -421,6 +435,7 @@ void ReSamplerAudioProcessorEditor::mouseUp(const juce::MouseEvent& event)
 		if (event.mods.isLeftButtonDown())
 		{
 			editorState.dragFlag = false;
+			editorState.lastDragDistance = 0;
 			if (isInSelectedArea(event.getMouseDownX()))
 			{
 				editorState.enableSelectArea = false;
@@ -430,11 +445,7 @@ void ReSamplerAudioProcessorEditor::mouseUp(const juce::MouseEvent& event)
 		}
 		if (event.mods.isRightButtonDown())
 		{
-			if (editorState.enableSelectArea && isInSelectedArea(event.getMouseDownX()))
-			{
-				;
-			}
-			else
+			if (!(editorState.enableSelectArea && isInSelectedArea(event.getMouseDownX())))
 			{
 				audioProcessor.bufferManager->bufferState.isPlaying = false;
 				audioProcessor.bufferManager->bufferState.readPosition = 0;
@@ -456,56 +467,73 @@ void ReSamplerAudioProcessorEditor::mouseDrag(const juce::MouseEvent& event)
 {
 	if (event.mods.isLeftButtonDown() && event.eventComponent == this)
 	{
-		if (editorState.enableSelectArea && isInSelectedArea(event.getMouseDownX()))
+		editorState.mouseX = event.getMouseDownX() + event.getDistanceFromDragStartX();
+		if (event.mods.isCtrlDown())
 		{
-			if (editorState.dragFlag)
-			{
-				editorState.dragFlag = false;
+			audioProcessor.bufferManager->bufferState.isPlaying = false;
+			editorState.enableSelectArea = false;
+			editorState.playSelected = false;
 
-				auto filePath = exportSelectedArea();
-				juce::StringArray files;
-				files.add(filePath);
-				juce::DragAndDropContainer::performExternalDragDropOfFiles(files, true);
-				editorState.playSelected = false;
-				audioProcessor.bufferManager->bufferState.isPlaying = false;
-			}
+			int deltaX = event.getDistanceFromDragStartX() - editorState.lastDragDistance;
+			editorState.waveformOffset += deltaX;
+			editorState.waveformOffset = (editorState.waveformOffset % getWidth() + getWidth()) % getWidth();
+			editorState.lastDragDistance = event.getDistanceFromDragStartX();
+
+			
+			DBG("offset: " << editorState.waveformOffset);
 		}
 		else
 		{
-			if (event.getDistanceFromDragStartX() < 0)
+			if (editorState.enableSelectArea && isInSelectedArea(event.getMouseDownX()))
 			{
-				editorState.startPosAbs = event.getMouseDownX() + event.getDistanceFromDragStartX();
-				editorState.widthAbs = -event.getDistanceFromDragStartX();
-				/*editorState.startPos = static_cast<float>(event.getMouseDownX() + event.getDistanceFromDragStartX()) / getWidth();
-				editorState.width = static_cast<float>(-event.getDistanceFromDragStartX()) / getWidth();*/
+				if (editorState.dragFlag)
+				{
+					editorState.dragFlag = false;
+
+					auto filePath = exportSelectedArea();
+					juce::StringArray files;
+					files.add(filePath);
+					juce::DragAndDropContainer::performExternalDragDropOfFiles(files, true);
+					editorState.playSelected = false;
+					audioProcessor.bufferManager->bufferState.isPlaying = false;
+				}
 			}
 			else
 			{
-				editorState.startPosAbs = event.getMouseDownX();
-				editorState.widthAbs = event.getDistanceFromDragStartX();
-				/*editorState.startPos = static_cast<float>(event.getMouseDownX()) / getWidth();
-				editorState.width = static_cast<float>(event.getDistanceFromDragStartX()) / getWidth();*/
+				if (event.getDistanceFromDragStartX() < 0)
+				{
+					editorState.startPosAbs = event.getMouseDownX() + event.getDistanceFromDragStartX();
+					editorState.widthAbs = -event.getDistanceFromDragStartX();
+					/*editorState.startPos = static_cast<float>(event.getMouseDownX() + event.getDistanceFromDragStartX()) / getWidth();
+					editorState.width = static_cast<float>(-event.getDistanceFromDragStartX()) / getWidth();*/
+				}
+				else
+				{
+					editorState.startPosAbs = event.getMouseDownX();
+					editorState.widthAbs = event.getDistanceFromDragStartX();
+					/*editorState.startPos = static_cast<float>(event.getMouseDownX()) / getWidth();
+					editorState.width = static_cast<float>(event.getDistanceFromDragStartX()) / getWidth();*/
+				}
+				if (editorState.startPosAbs < 0)
+				{
+					editorState.widthAbs += editorState.startPosAbs;
+					editorState.startPosAbs = 0;
+					/*editorState.width += editorState.startPos;
+					editorState.startPos = 0.0f;*/
+				}
+				if (editorState.startPosAbs + editorState.widthAbs >= getWidth())
+					editorState.widthAbs = getWidth() - editorState.startPosAbs;
+				editorState.startPos = static_cast<float>(editorState.startPosAbs) / getWidth();
+				editorState.width = static_cast<float>(editorState.widthAbs) / getWidth();
+				editorState.enableSelectArea = true;
+				editorState.playSelected = false;
+				audioProcessor.bufferManager->bufferState.isPlaying = false;
+				repaint();
 			}
-			if (editorState.startPosAbs < 0)
-			{
-				editorState.widthAbs += editorState.startPosAbs;
-				editorState.startPosAbs = 0;
-				/*editorState.width += editorState.startPos;
-				editorState.startPos = 0.0f;*/
-			}
-			if (editorState.startPosAbs + editorState.widthAbs >= getWidth())
-				editorState.widthAbs = getWidth() - editorState.startPosAbs;
-			DBG("getWidth()" << getWidth());
-			DBG("startAbs" << editorState.startPosAbs);
-			DBG("editorState.endAbs" << editorState.startPosAbs + editorState.widthAbs);
-			editorState.startPos = static_cast<float>(editorState.startPosAbs) / getWidth();
-			editorState.width = static_cast<float>(editorState.widthAbs) / getWidth();
-			editorState.enableSelectArea = true;
-			editorState.playSelected = false;
-			audioProcessor.bufferManager->bufferState.isPlaying = false;
-			repaint();
 		}
 	}
+
+
 }
 
 void ReSamplerAudioProcessorEditor::mouseMove(const juce::MouseEvent& event)
