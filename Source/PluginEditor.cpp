@@ -58,16 +58,29 @@ void ReSamplerAudioProcessorEditor::paint(juce::Graphics& g)
 	juce::Rectangle<int> secondPart(0, 0, editorState.waveformOffset, getHeight());
 	double crossoverTime = static_cast<double>(getWidth() - editorState.waveformOffset) * audioProcessor.bufferManager->getBufferLength() / getWidth();
 
-
 	if (audioProcessor.bufferManager->bufferState.isPlaying && editorState.playSelected)
 	{
-		if (playLineX > editorState.startPosAbs + editorState.widthAbs + 1 || playLineX < editorState.startPosAbs - 1)
+		if (editorState.startPosAbs + editorState.widthAbs < getWidth())
 		{
-			audioProcessor.bufferManager->bufferState.isPlaying = false;
-			audioProcessor.bufferManager->bufferState.readPosition = 0;
-			editorState.playSelected = false;
+			if (playLineX > editorState.startPosAbs + editorState.widthAbs + 1 || playLineX < editorState.startPosAbs - 1)
+			{
+				audioProcessor.bufferManager->bufferState.isPlaying = false;
+				audioProcessor.bufferManager->bufferState.readPosition = 0;
+				editorState.playSelected = false;
+			}
 		}
+		else
+		{
+			if (playLineX > (editorState.startPosAbs + editorState.widthAbs) % getWidth() + 1 && playLineX < editorState.startPosAbs - 1)
+			{
+				audioProcessor.bufferManager->bufferState.isPlaying = false;
+				audioProcessor.bufferManager->bufferState.readPosition = 0;
+				editorState.playSelected = false;
+			}
+		}
+		
 	}
+	
 	switch (properties.theme)
 	{
 	case Theme::Rainbow:
@@ -89,6 +102,7 @@ void ReSamplerAudioProcessorEditor::paint(juce::Graphics& g)
 	default:
 		break;
 	}
+	
 	menuButton.setColour(juce::TextButton::buttonColourId, colourScheme.backGround);
 	menuButton.setColour(juce::TextButton::textColourOffId, colourScheme.buttonText);
 
@@ -122,7 +136,13 @@ void ReSamplerAudioProcessorEditor::paint(juce::Graphics& g)
 	if (editorState.enableSelectArea)
 	{
 		g.setColour(colourScheme.selcectedArea);
-		g.fillRect(editorState.startPosAbs, 0, editorState.widthAbs, getHeight());
+		if (editorState.startPosAbs + editorState.widthAbs < getWidth())
+			g.fillRect(editorState.startPosAbs, 0, editorState.widthAbs, getHeight());
+		else
+		{
+			g.fillRect(0, 0, editorState.startPosAbs + editorState.widthAbs - getWidth(), getHeight());
+			g.fillRect(editorState.startPosAbs, 0, getWidth() - editorState.startPosAbs, getHeight());
+		}
 	}
 
 	if (properties.theme == Theme::Rainbow)
@@ -336,14 +356,12 @@ juce::String ReSamplerAudioProcessorEditor::exportSelectedArea()
 	juce::File audioFile(filePath);
 
 	const juce::AudioBuffer<float>& buffer = *audioProcessor.bufferManager->getBufferPointer();
-	int startSample = static_cast<int>(editorState.startPos * buffer.getNumSamples());
-	if (startSample < 0)
-		startSample = 0;
-	int numSamples = static_cast<int>(editorState.width * buffer.getNumSamples());
-	if (startSample + numSamples >= buffer.getNumSamples())
-		numSamples = buffer.getNumSamples() - startSample;
+	int realStartX = (editorState.startPosAbs + getWidth() - editorState.waveformOffset) % getWidth();
+	double realStartPos = static_cast<double>(realStartX) / getWidth();
 
-	DBG("startSample: " << startSample << " numSamples: " << numSamples << " totalSamples " << buffer.getNumSamples());
+	int startSample = static_cast<int>(realStartPos * buffer.getNumSamples());
+	int numSamples = static_cast<int>(editorState.width * buffer.getNumSamples());
+
 	renderBuffer(buffer, startSample, numSamples, audioProcessor.bufferManager->getBufferSampleRate(), audioFile);
 
 	return filePath;
@@ -351,13 +369,11 @@ juce::String ReSamplerAudioProcessorEditor::exportSelectedArea()
 
 void ReSamplerAudioProcessorEditor::renderBuffer(const juce::AudioBuffer<float>& buffer, int startSample, int numSamples, double sampleRate, const juce::File& file)
 {
-	// 创建一个 WAV 格式的音频格式对象
 	juce::WavAudioFormat wavFormat;
 	std::unique_ptr<juce::FileOutputStream> fileStream(file.createOutputStream());
 
 	if (fileStream != nullptr)
 	{
-		// 创建一个音频格式写入器
 		std::unique_ptr<juce::AudioFormatWriter> writer(wavFormat.createWriterFor(fileStream.get(),
 			sampleRate,
 			buffer.getNumChannels(),
@@ -367,19 +383,28 @@ void ReSamplerAudioProcessorEditor::renderBuffer(const juce::AudioBuffer<float>&
 
 		if (writer != nullptr)
 		{
-			// 将文件流的所有权转移给写入器
 			fileStream.release();
 
-			// 创建一个临时缓冲区，用于存储要写入的音频数据
 			juce::AudioBuffer<float> tempBuffer(buffer.getNumChannels(), numSamples);
 
-			// 从原始缓冲区中复制指定区域的数据到临时缓冲区
-			for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
+			DBG("startSample: " << startSample << " numSamples: " << numSamples << " totalSamples: " << buffer.getNumSamples());
+			if (startSample + numSamples > buffer.getNumSamples())
 			{
-				tempBuffer.copyFrom(channel, 0, buffer.getReadPointer(channel, startSample), numSamples);
+				DBG("crossover");
+				int overlap = startSample + numSamples - buffer.getNumSamples();
+				for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
+				{
+					tempBuffer.copyFrom(channel, 0, buffer.getReadPointer(channel, startSample), numSamples - overlap);
+					tempBuffer.copyFrom(channel, numSamples - overlap, buffer.getReadPointer(channel, 0), overlap);
+				}
 			}
-
-			// 将临时缓冲区中的数据写入文件
+			else
+			{
+				for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
+				{
+					tempBuffer.copyFrom(channel, 0, buffer.getReadPointer(channel, startSample), numSamples);
+				}
+			}
 			writer->writeFromAudioSampleBuffer(tempBuffer, 0, numSamples);
 		}
 	}
@@ -395,7 +420,7 @@ void ReSamplerAudioProcessorEditor::timerCallback()
 
 void ReSamplerAudioProcessorEditor::mouseDown(const juce::MouseEvent& event)
 {
-	if (event.eventComponent == this)
+	if (event.eventComponent == this && !event.mods.isCtrlDown())
 	{
 		if (event.mods.isLeftButtonDown())
 		{
@@ -430,12 +455,12 @@ void ReSamplerAudioProcessorEditor::mouseDown(const juce::MouseEvent& event)
 
 void ReSamplerAudioProcessorEditor::mouseUp(const juce::MouseEvent& event)
 {
-	if (event.eventComponent == this)
+	editorState.lastDragDistance = 0;
+	if (event.eventComponent == this && !event.mods.isCtrlDown())
 	{
 		if (event.mods.isLeftButtonDown())
 		{
 			editorState.dragFlag = false;
-			editorState.lastDragDistance = 0;
 			if (isInSelectedArea(event.getMouseDownX()))
 			{
 				editorState.enableSelectArea = false;
@@ -465,22 +490,26 @@ void ReSamplerAudioProcessorEditor::mouseDoubleClick(const juce::MouseEvent& eve
 
 void ReSamplerAudioProcessorEditor::mouseDrag(const juce::MouseEvent& event)
 {
+	editorState.mouseX = event.getMouseDownX() + event.getDistanceFromDragStartX();
 	if (event.mods.isLeftButtonDown() && event.eventComponent == this)
 	{
-		editorState.mouseX = event.getMouseDownX() + event.getDistanceFromDragStartX();
 		if (event.mods.isCtrlDown())
 		{
-			audioProcessor.bufferManager->bufferState.isPlaying = false;
+			/*audioProcessor.bufferManager->bufferState.isPlaying = false;
 			editorState.enableSelectArea = false;
-			editorState.playSelected = false;
+			editorState.playSelected = false;*/
 
 			int deltaX = event.getDistanceFromDragStartX() - editorState.lastDragDistance;
 			editorState.waveformOffset += deltaX;
 			editorState.waveformOffset = (editorState.waveformOffset % getWidth() + getWidth()) % getWidth();
+			if (editorState.enableSelectArea)
+			{
+				editorState.startPosAbs += deltaX;
+				editorState.startPosAbs = (editorState.startPosAbs % getWidth() + getWidth()) % getWidth();
+				editorState.startPos = static_cast<float>(editorState.startPosAbs) / getWidth();
+			}
 			editorState.lastDragDistance = event.getDistanceFromDragStartX();
-
-			
-			DBG("offset: " << editorState.waveformOffset);
+			repaint();
 		}
 		else
 		{
