@@ -42,6 +42,18 @@ struct EditorState
 	bool mouseIn = false;
 };
 
+struct ColourScheme
+{
+	juce::ColourGradient waveBlock;
+	juce::ColourGradient recBlock;
+	juce::Colour backGround;
+	juce::Colour recLine;
+	juce::Colour playLine;
+	juce::Colour selcectedArea;
+	juce::Colour pauseArea;
+	juce::Colour buttonText;
+};
+
 class ReSamplerAudioProcessorEditor : public juce::AudioProcessorEditor,
 	public juce::DragAndDropContainer,
 	public juce::Timer,
@@ -56,10 +68,10 @@ public:
 	void resized() override;
 
 private:
-	void paintRainbow(juce::Graphics& g);
-	void paintLight(juce::Graphics& g);
-	void paintDark(juce::Graphics& g);
-	void paintMatrix(juce::Graphics& g);
+	void paintRainbow(juce::Graphics& g, int recLineX, int playLineX);
+	void paintDark(juce::Graphics& g, int recLineX, int playLineX);
+	void paintLight(juce::Graphics& g, int recLineX, int playLineX);
+	void paintMatrix(juce::Graphics& g, int recLineX, int playLineX);
 
 	void manageProperties();
 	void saveState();
@@ -94,6 +106,7 @@ private:
 	std::unique_ptr<juce::PropertiesFile> propertiesFile;
 	Properties properties;
 	EditorState editorState;
+	ColourScheme colourScheme;
 	int offset = 0;
 
 	juce::AudioThumbnailCache thumbnailCache{ 6 };
