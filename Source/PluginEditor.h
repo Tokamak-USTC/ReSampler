@@ -32,19 +32,18 @@ struct EditorState
 {
 	float startPos = 0.0f;
 	float width = 0.0f;
+	float waveformOffset = 0.0f;
 	int startPosAbs = 0;
 	int widthAbs = 0;
+	int waveformOffsetAbs = 0;
+
+	int lastDragDistance = 0;
+	int mouseX = 0;
+	bool mouseIn = false;
 
 	bool enableSelectArea = false;
 	bool dragFlag = false;
 	bool playSelected = false;
-	int lastDragDistance = 0;
-	int waveformOffset = 0;
-
-
-	int mouseX = 0;
-	bool mouseIn = false;
-
 };
 
 struct ColourScheme

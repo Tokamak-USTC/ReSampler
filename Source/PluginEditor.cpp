@@ -51,12 +51,12 @@ void ReSamplerAudioProcessorEditor::paint(juce::Graphics& g)
 {
 	int recLineX = getWidth() * (static_cast<float>(audioProcessor.bufferManager->bufferState.writePosition) / audioProcessor.bufferManager->getBufferPointer()->getNumSamples());
 	int playLineX = getWidth() * (static_cast<float>(audioProcessor.bufferManager->bufferState.readPosition) / audioProcessor.bufferManager->getBufferPointer()->getNumSamples());
-	recLineX = (recLineX + editorState.waveformOffset) % getWidth();
-	playLineX = (playLineX + editorState.waveformOffset) % getWidth();
+	recLineX = (recLineX + editorState.waveformOffsetAbs) % getWidth();
+	playLineX = (playLineX + editorState.waveformOffsetAbs) % getWidth();
 
-	juce::Rectangle<int> firstPart(editorState.waveformOffset, 0, getWidth() - editorState.waveformOffset, getHeight());
-	juce::Rectangle<int> secondPart(0, 0, editorState.waveformOffset, getHeight());
-	double crossoverTime = static_cast<double>(getWidth() - editorState.waveformOffset) * audioProcessor.bufferManager->getBufferLength() / getWidth();
+	juce::Rectangle<int> firstPart(editorState.waveformOffsetAbs, 0, getWidth() - editorState.waveformOffsetAbs, getHeight());
+	juce::Rectangle<int> secondPart(0, 0, editorState.waveformOffsetAbs, getHeight());
+	double crossoverTime = static_cast<double>(getWidth() - editorState.waveformOffsetAbs) * audioProcessor.bufferManager->getBufferLength() / getWidth();
 
 	if (audioProcessor.bufferManager->bufferState.isPlaying && editorState.playSelected)
 	{
@@ -78,9 +78,9 @@ void ReSamplerAudioProcessorEditor::paint(juce::Graphics& g)
 				editorState.playSelected = false;
 			}
 		}
-		
+
 	}
-	
+
 	switch (properties.theme)
 	{
 	case Theme::Rainbow:
@@ -102,7 +102,7 @@ void ReSamplerAudioProcessorEditor::paint(juce::Graphics& g)
 	default:
 		break;
 	}
-	
+
 	menuButton.setColour(juce::TextButton::buttonColourId, colourScheme.backGround);
 	menuButton.setColour(juce::TextButton::textColourOffId, colourScheme.buttonText);
 
@@ -168,6 +168,7 @@ void ReSamplerAudioProcessorEditor::resized()
 	menuButton.setBounds(getWidth() - 50, 10, 40, 20);
 	editorState.startPosAbs = editorState.startPos * getWidth();
 	editorState.widthAbs = editorState.width * getWidth();
+	editorState.waveformOffsetAbs = editorState.waveformOffset * getWidth();
 }
 
 void ReSamplerAudioProcessorEditor::paintRainbow(juce::Graphics& g, int recLineX, int playLineX)
@@ -356,7 +357,7 @@ juce::String ReSamplerAudioProcessorEditor::exportSelectedArea()
 	juce::File audioFile(filePath);
 
 	const juce::AudioBuffer<float>& buffer = *audioProcessor.bufferManager->getBufferPointer();
-	int realStartX = (editorState.startPosAbs + getWidth() - editorState.waveformOffset) % getWidth();
+	int realStartX = (editorState.startPosAbs + getWidth() - editorState.waveformOffsetAbs) % getWidth();
 	double realStartPos = static_cast<double>(realStartX) / getWidth();
 
 	int startSample = static_cast<int>(realStartPos * buffer.getNumSamples());
@@ -439,14 +440,14 @@ void ReSamplerAudioProcessorEditor::mouseDown(const juce::MouseEvent& event)
 			{
 				audioProcessor.bufferManager->bufferState.isPlaying = true;
 				editorState.playSelected = true;
-				int realReadX = (editorState.startPosAbs + getWidth() - editorState.waveformOffset) % getWidth();
+				int realReadX = (editorState.startPosAbs + getWidth() - editorState.waveformOffsetAbs) % getWidth();
 				audioProcessor.bufferManager->bufferState.readPosition = static_cast<float>(realReadX) / getWidth() * audioProcessor.bufferManager->getBufferPointer()->getNumSamples();
 
 			}
 			else
 			{
 				audioProcessor.bufferManager->bufferState.isPlaying = true;
-				int realReadX = (event.getMouseDownX() + getWidth() - editorState.waveformOffset) % getWidth();
+				int realReadX = (event.getMouseDownX() + getWidth() - editorState.waveformOffsetAbs) % getWidth();
 				audioProcessor.bufferManager->bufferState.readPosition = static_cast<float>(realReadX) / getWidth() * audioProcessor.bufferManager->getBufferPointer()->getNumSamples();
 			}
 		}
@@ -491,7 +492,7 @@ void ReSamplerAudioProcessorEditor::mouseDoubleClick(const juce::MouseEvent& eve
 void ReSamplerAudioProcessorEditor::mouseDrag(const juce::MouseEvent& event)
 {
 	editorState.mouseX = event.getMouseDownX() + event.getDistanceFromDragStartX();
-	if (event.mods.isLeftButtonDown() && event.eventComponent == this)
+	if (event.eventComponent == this && event.mods.isLeftButtonDown())
 	{
 		if (event.mods.isCtrlDown())
 		{
@@ -500,8 +501,9 @@ void ReSamplerAudioProcessorEditor::mouseDrag(const juce::MouseEvent& event)
 			editorState.playSelected = false;*/
 
 			int deltaX = event.getDistanceFromDragStartX() - editorState.lastDragDistance;
-			editorState.waveformOffset += deltaX;
-			editorState.waveformOffset = (editorState.waveformOffset % getWidth() + getWidth()) % getWidth();
+			editorState.waveformOffsetAbs += deltaX;
+			editorState.waveformOffsetAbs = (editorState.waveformOffsetAbs % getWidth() + getWidth()) % getWidth();
+			editorState.waveformOffset = static_cast<float>(editorState.waveformOffsetAbs) / getWidth();
 			if (editorState.enableSelectArea)
 			{
 				editorState.startPosAbs += deltaX;
@@ -533,22 +535,16 @@ void ReSamplerAudioProcessorEditor::mouseDrag(const juce::MouseEvent& event)
 				{
 					editorState.startPosAbs = event.getMouseDownX() + event.getDistanceFromDragStartX();
 					editorState.widthAbs = -event.getDistanceFromDragStartX();
-					/*editorState.startPos = static_cast<float>(event.getMouseDownX() + event.getDistanceFromDragStartX()) / getWidth();
-					editorState.width = static_cast<float>(-event.getDistanceFromDragStartX()) / getWidth();*/
 				}
 				else
 				{
 					editorState.startPosAbs = event.getMouseDownX();
 					editorState.widthAbs = event.getDistanceFromDragStartX();
-					/*editorState.startPos = static_cast<float>(event.getMouseDownX()) / getWidth();
-					editorState.width = static_cast<float>(event.getDistanceFromDragStartX()) / getWidth();*/
 				}
 				if (editorState.startPosAbs < 0)
 				{
 					editorState.widthAbs += editorState.startPosAbs;
 					editorState.startPosAbs = 0;
-					/*editorState.width += editorState.startPos;
-					editorState.startPos = 0.0f;*/
 				}
 				if (editorState.startPosAbs + editorState.widthAbs >= getWidth())
 					editorState.widthAbs = getWidth() - editorState.startPosAbs;
