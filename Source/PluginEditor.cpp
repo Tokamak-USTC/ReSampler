@@ -60,7 +60,7 @@ void ReSamplerAudioProcessorEditor::paint(juce::Graphics& g)
 
 	if (audioProcessor.bufferManager->bufferState.isPlaying && editorState.playSelected)
 	{
-		if (editorState.startPosAbs + editorState.widthAbs < getWidth())
+		if (editorState.startPosAbs + editorState.widthAbs <= getWidth())
 		{
 			if (playLineX > editorState.startPosAbs + editorState.widthAbs + 1 || playLineX < editorState.startPosAbs - 1)
 			{
@@ -338,7 +338,15 @@ bool ReSamplerAudioProcessorEditor::isInSelectedArea(const int pos)
 	if (pos >= (editorState.startPos + editorState.width) * getWidth() - 1)
 		return false;
 	return true;*/
-	return (pos > editorState.startPosAbs && pos < editorState.startPosAbs + editorState.widthAbs);
+
+	if (editorState.startPosAbs + editorState.widthAbs <= getWidth())
+	{
+		return (pos > editorState.startPosAbs + 1 && pos < editorState.startPosAbs + editorState.widthAbs - 1);
+	}
+	else
+	{
+		return (pos > editorState.startPosAbs + 1 || pos < (editorState.startPosAbs + editorState.widthAbs) % getWidth() - 1);
+	}
 }
 
 juce::String ReSamplerAudioProcessorEditor::exportSelectedArea()
@@ -557,8 +565,6 @@ void ReSamplerAudioProcessorEditor::mouseDrag(const juce::MouseEvent& event)
 			}
 		}
 	}
-
-
 }
 
 void ReSamplerAudioProcessorEditor::mouseMove(const juce::MouseEvent& event)
@@ -604,9 +610,20 @@ void ReSamplerAudioProcessorEditor::setBufferLength(int length)
 {
 	if (audioProcessor.bufferManager->getBufferLength() == length)
 		return;
+
+	audioProcessor.bufferManager->bufferState.isPlaying = false;
+	editorState.startPos = 0.0f;
+	editorState.width = 0.0f;
+	editorState.waveformOffset = 0.0f;
+	editorState.startPosAbs = 0;
+	editorState.widthAbs = 0;
+	editorState.waveformOffsetAbs = 0;
+	editorState.enableSelectArea = false;
+	editorState.playSelected = false;
+
 	audioProcessor.bufferManager->setBufferLength(length);
 	waveform.setSource(audioProcessor.bufferManager->getBufferPointer(), audioProcessor.bufferManager->getBufferSampleRate(), length);
-	editorState.enableSelectArea = false;
+
 	saveState();
 	repaint();
 }
