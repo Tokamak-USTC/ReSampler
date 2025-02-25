@@ -25,13 +25,13 @@ ReSampler是一个基于JUCE框架开发的循环采样工具，通过在堆区�
 
 ### 颜色主题
 ReSampler提供了多个颜色主题：
-**rainbow:**
+- **rainbow:**
 ![alt text](preview/rainbow.png)
-**dark:**
+- **dark:**
 ![alt text](preview/dark.png)
-**light:**
+- **light:**
 ![alt text](preview/light.png)
-**matrix:**
+- **matrix:**
 ![alt text](preview/matrix.png)
 
 ### 注意事项
